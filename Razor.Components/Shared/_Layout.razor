@@ -1,0 +1,51 @@
+﻿@inherits LayoutComponentBase
+
+<PageTitle>ConnectTo.Ai</PageTitle>
+
+<div class="page">
+    <div class="sidebar" style="display:none">
+    </div>
+    <main>
+        <div class="top-row px-4">
+            <a title="Home" class="link-primary" style="text-decoration:none;color:@homeLinkColor" @onclick="ActivateHome" href="Home">
+                Home
+            </a>
+            <a title="Login" class="link-primary" style="text-decoration:none;color:@loginLinkColor" @onclick="ActivateLogin"  href="Login">
+                Login
+            </a>
+            <a title="Registration" class="link-primary" style="text-decoration:none;color:@registerLinkColor" @onclick="ActivateRegister"  href="register">
+                Sign Up
+            </a>
+        </div>
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code {
+
+    string homeLinkColor = "#0d6efd";
+    string loginLinkColor = "#000000";
+    string registerLinkColor = "#0d6efd";
+
+    public void ActivateHome()
+    {
+        homeLinkColor = "#000000";
+        loginLinkColor = "#0d6efd";
+        registerLinkColor = "#0d6efd";
+
+    }
+    public void ActivateLogin()
+    {
+        homeLinkColor = "0d6efd";
+        loginLinkColor = "#000000";
+        registerLinkColor = "#0d6efd";
+    }
+    public void ActivateRegister()
+    {
+        homeLinkColor = "0d6efd";
+        loginLinkColor = "#0d6efd";
+        registerLinkColor = "#000000";
+    }
+}

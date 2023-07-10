@@ -1,0 +1,30 @@
+﻿@inherits LayoutComponentBase
+@inject NavigationManager navigation
+@inject IJSRuntime JS
+<PageTitle>ConnectTo.Ai</PageTitle>
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+    <main>
+        <div class="top-row px-4">
+            <button title="Navigation menu" class="navbar-toggler" @onclick="SignOut">
+                <span class="oi oi-account-logout"></span> Logout
+            </button>
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code {
+
+    public async Task SignOut()
+    {
+        await JS.InvokeVoidAsync("blazorApp.deleteCookie", "AuthToken");
+        navigation.NavigateTo("/login");
+    }
+}

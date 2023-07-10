@@ -1,0 +1,147 @@
+﻿@page "/Login"
+@using Microsoft.AspNetCore.Http;
+@using System.IdentityModel.Tokens.Jwt;
+
+@inherits PublicBase
+@inject HttpClient httpClient
+@inject NavigationManager navigation
+@inject LoginViewModel loginViewModel
+@inject AppState appStatus
+@inject IJSRuntime JS
+
+
+<div class="row">
+    <div class="col-md-4">
+    </div>
+    <div class="col-md-4">
+        <section>
+
+            <h2>Use a local account to log in.</h2>
+            <hr />
+            <div class="text-danger" role="alert">@errorMessage</div>
+
+            <div class="form-floating mb-3">
+                <input class="form-control" autocomplete="username" @bind-value="loginViewModel.Email" aria-required="true" placeholder="name@example.com" />
+                <label class="form-label">Email</label>
+                <span asp-validation-for="Input.Email" class="text-danger"></span>
+            </div>
+            <div class="form-floating mb-3">
+                <input type="password" class="form-control" autocomplete="current-password" @bind-value="loginViewModel.Password" aria-required="true" placeholder="password" />
+                <label class="form-label">Password</label>
+                <span asp-validation-for="Input.Password" class="text-danger"></span>
+            </div>
+            @*<div class="checkbox mb-3">
+            <label  class="form-label">
+            <input class="form-check-input" type="checkbox" /> Remember me
+            </label>
+            </div>*@
+            <div>
+                <button id="login-submit" class="w-100 btn btn-lg btn-primary" @onclick="@OnLoginClicked">Log in</button>
+            </div>
+
+            <div style="margin-top:20px">
+                <p>
+                    <a id="forgot-password" href="./ForgotPassword">Forgot your password?</a>
+                </p>
+                <p>
+                    <a href="./Register">Register as a new user</a>
+                </p>
+                <p>
+                    <a id="resend-confirmation" href="./ResendEmailConfirmation">Resend email confirmation</a>
+                </p>
+            </div>
+
+        </section>
+    </div>
+</div>
+
+@code {
+
+    string errorMessage = "";
+    async Task OnLoginClicked()
+    {
+        var jsonData = JsonConvert.SerializeObject(loginViewModel);
+        var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
+
+        var url = $"{Setting.BaseUrl}{APIs.Login}";
+
+        var response = await httpClient.PostAsync(url, content);
+
+        if (response != null && response.IsSuccessStatusCode)
+        {
+            var responseBody = await response.Content.ReadAsStringAsync();
+            if (responseBody != null)
+            {
+                var mainResponse = JsonConvert.DeserializeObject<MainResponse>(responseBody);
+
+                if (mainResponse != null && mainResponse.IsSuccess)
+                {
+                    if (mainResponse.Content != null)
+                    {
+                        var authenticationResponse = JsonConvert.DeserializeObject<AuthenticationResponse>(mainResponse.Content.ToString());
+                        if (authenticationResponse != null)
+                        {
+                            var handler = new JwtSecurityTokenHandler();
+                            var jsontoken = handler.ReadToken(authenticationResponse.AccessToken) as JwtSecurityToken;
+                            if (!string.IsNullOrWhiteSpace(authenticationResponse.AccessToken))
+                            {
+                                string userID = jsontoken.Claims.FirstOrDefault(f => f.Type == JwtRegisteredClaimNames.NameId).Value;
+                                string name = jsontoken.Claims.FirstOrDefault(f => f.Type == JwtRegisteredClaimNames.UniqueName).Value;
+                                string userAvatar = jsontoken.Claims.FirstOrDefault(f => f.Type == "UserAvatar").Value;
+
+                                string email = loginViewModel.Email;
+
+                                var userDetail = new UserDetail
+                                    {
+                                        Email = email,
+                                        Name = name,
+                                        AccessToken = authenticationResponse.AccessToken,
+                                        RefreshToken = authenticationResponse.RefreshToken,
+                                        UserAvatar = !string.IsNullOrWhiteSpace(userAvatar) ? $"{Setting.BaseUrl}/{userAvatar}" : "",
+                                        UserID = userID
+                                    };
+
+                                string userDetailInfoStr = JsonConvert.SerializeObject(userDetail);
+
+                                Setting.UserDetail = userDetail;
+
+                                // Call the JavaScript function to set the cookie
+                                await JS.InvokeVoidAsync("blazorApp.setAuthTokenCookie", userDetailInfoStr);
+                                navigation.NavigateTo("Index");
+                            }
+                            else
+                            {
+                                errorMessage = "Invalid Token created";
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    if (mainResponse != null && mainResponse.ErrorMessage != null)
+                    {
+                        errorMessage = mainResponse.ErrorMessage;
+                    }
+                }
+            }
+        }
+        else
+        {
+            if (response != null && response.ReasonPhrase != null)
+            {
+                errorMessage = response.ReasonPhrase;
+            }
+
+        }
+    }
+
+
+
+    //async ValueTask IAsyncDisposable.DisposeAsync()
+    //{
+    //    if (module is not null)
+    //    {
+    //        await module.DisposeAsync();
+    //    }
+    //}
+}

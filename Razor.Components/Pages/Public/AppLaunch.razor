@@ -1,0 +1,53 @@
+﻿@page "/"
+
+@using Microsoft.IdentityModel.Tokens;
+﻿@using Newtonsoft.Json
+@using System.IdentityModel.Tokens.Jwt
+@inject NavigationManager NavManager
+@inject IAppService AppService
+@inject IJSRuntime JS
+
+Loading....
+
+@code {
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+        string authToken = await JS.InvokeAsync<string>("blazorApp.getCookieValue", "AuthToken");
+
+        if (!string.IsNullOrWhiteSpace(authToken))
+        {
+            try
+            {
+                var userDetail = JsonConvert.DeserializeObject<UserDetail>(authToken);
+
+                if (userDetail != null)
+                {
+                    var handler = new JwtSecurityTokenHandler();
+                    var jwtToken = handler.ReadToken(userDetail.AccessToken) as JwtSecurityToken;
+                    if (jwtToken != null)
+                    {
+                        if (jwtToken != null && jwtToken.ValidTo < DateTime.UtcNow)
+                        {
+                            bool isTokenRefreshed = await AppService.RefreshToken();
+
+                            if (isTokenRefreshed)
+                            {
+                                NavManager.NavigateTo("/Index");
+                            }
+                        }
+                        else
+                            NavManager.NavigateTo("/Index");
+                    }
+                    else
+                        NavManager.NavigateTo("/login");
+                }
+            }
+            catch (Exception)
+            {
+                NavManager.NavigateTo("/login");
+            }
+        }
+        else
+            NavManager.NavigateTo("/login");
+    }
+}

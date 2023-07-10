@@ -1,0 +1,47 @@
+﻿@page "/ConfirmEmail"
+
+@inherits PublicBase
+@inject HttpClient httpClient
+@inject NavigationManager navigation
+@using Microsoft.AspNetCore.WebUtilities
+<h3>ConfirmEmail</h3>
+
+<div class="alert alert-@statusMessageClass alert-dismissible" role="alert">
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    @message
+</div>
+
+@code {
+    string statusMessageClass = "success";
+    string? message = "Email bas been varified successfully";
+    protected async override void OnAfterRender(bool firstRender)
+    {
+        var uri = navigation.ToAbsoluteUri(navigation.Uri);
+
+        QueryHelpers.ParseQuery(uri.Query).TryGetValue("userid", out var userId);
+        QueryHelpers.ParseQuery(uri.Query).TryGetValue("token", out var token);
+
+        var url = $"{Setting.BaseUrl}{APIs.ConfirmEmail}";
+        var response = await httpClient.GetAsync(url + "/?userId=" + userId + "&token=" + token);
+
+        if (response.IsSuccessStatusCode)
+        {
+            var responseBody = await response.Content.ReadAsStringAsync();
+
+            var mainResponse = JsonConvert.DeserializeObject<MainResponse>(responseBody);
+
+            if (mainResponse != null && mainResponse.IsSuccess && mainResponse.Content != null)
+            {
+                //message = JsonConvert.DeserializeObject(mainResponse.Content.ToString(), typeof(string));
+                message = mainResponse.Content.ToString();
+                statusMessageClass = "success";
+            }
+            else
+            {
+                message = message = JsonConvert.DeserializeObject<string>(mainResponse.ErrorMessage);
+                statusMessageClass = "danger";
+            }
+        }
+        
+    }
+}

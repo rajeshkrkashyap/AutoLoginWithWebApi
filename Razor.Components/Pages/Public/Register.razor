@@ -1,0 +1,114 @@
+﻿@page "/Register"
+@inherits PublicBase
+@inject HttpClient httpClient
+@inject NavigationManager navigation
+
+<div class="row">
+    <div class="col-md-4">
+    </div>
+    <div class="col-md-4">
+        <h2>Create a new account.</h2>
+        <hr />
+        <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+        <div class="form-floating mb-3">
+            <input class="form-control" @bind-value="@name" autocomplete="name" aria-required="true" placeholder="Your Name" />
+            <label>Name</label>
+            <span asp-validation-for="Input.Name" class="text-danger"></span>
+        </div>
+        <div class="form-floating mb-3">
+            <input asp-for="Input.Email" class="form-control" @bind-value="@email" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+            <label asp-for="Input.Email">Email</label>
+            <span asp-validation-for="Input.Email" class="text-danger"></span>
+        </div>
+        <div class="form-floating mb-3">
+            <input type="password" class="form-control" @bind-value="@password" autocomplete="new-password" aria-required="true" placeholder="password" />
+            <label>Password</label>
+            <span asp-validation-for="Input.Password" class="text-danger"></span>
+        </div>
+        <div class="form-floating mb-3">
+            <input type="password" class="form-control" @bind-value="@confirmPassword" @onfocusout="PasswordMatchValidation" autocomplete="new-password" aria-required="true" placeholder="password" />
+            <label>Confirm Password</label>
+            <span style="display:@isDisplay" class="text-danger">Password is not matched</span>
+        </div>
+        <button id="registerSubmit" type="button" disabled="@isDisabled" class="w-100 btn btn-lg @btnClass" @onclick="OnRegisterClicked">Register</button>
+
+        <div style="margin-top:20px">
+            <p>
+                <a href="./Login">Login if you have account</a>
+            </p>
+            <p>
+                <a id="forgot-password" href="./ForgotPassword">Forgot your password?</a>
+            </p>
+            <p>
+                <a id="resend-confirmation" href="./ResendEmailConfirmation">Resend email confirmation</a>
+            </p>
+        </div>
+    </div>
+
+</div>
+
+@code {
+    
+    string name;
+    string email;
+    string password;
+    string confirmPassword;
+    bool rememberMe;
+    string isDisplay = "none";
+    string btnClass = "btn-primary";
+    bool isDisabled = true;
+    async Task PasswordMatchValidation()
+    {
+        if (confirmPassword == password)
+        {
+            isDisplay = "none";
+            btnClass = "btn-primary";
+            isDisabled = false;
+        }
+        else
+        {
+            isDisplay = "block";
+            btnClass = "btn-primary";
+            isDisabled = true;
+        }
+    }
+    async Task OnRegisterClicked()
+    {
+        
+        var model = new RegisterViewModel
+            {
+                Name = name,
+                Email = email,
+                Password = password,
+                ConfirmPassword = confirmPassword
+            };
+
+        var jsonData = JsonConvert.SerializeObject(model);
+
+        var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
+
+        var url = $"{Setting.BaseUrl}{APIs.Register}";
+        var response = await httpClient.PostAsync(url, content);
+
+        if (response.IsSuccessStatusCode)
+        {
+            var responseBody = await response.Content.ReadAsStringAsync();
+
+            var mainResponse = JsonConvert.DeserializeObject<MainResponse>(responseBody);
+
+            if (mainResponse!=null && mainResponse.IsSuccess)
+            {
+                navigation.NavigateTo("RegisterConfirmation");
+            }
+            else
+            {
+
+
+            }
+        }
+        else
+        {
+
+        }
+    }
+}
